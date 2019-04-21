@@ -9,12 +9,15 @@ using NAudio.Wave;
 
 namespace PAIN_chat
 {
+    
     public partial class NetworkChatPanel : Form
     {
         private INetworkChatCodec selectedCodec;
         private volatile bool connected;
         private NetworkAudioPlayer player;
         private NetworkAudioSender audioSender;
+        Timer VolumeBar = new Timer { Interval = 10, Enabled = false };
+        public static int inputSens;
 
         [DllImport("winmm.dll")]
         public static extern int waveOutGetVolume(IntPtr hwo, out uint dwVolume);
@@ -35,13 +38,12 @@ namespace PAIN_chat
             comboBoxProtocol.SelectedIndex = 0;
             Disposed += OnPanelDisposed;
 
-            // InitializeComponent();
             uint CurrVol = 0;
             waveOutGetVolume(IntPtr.Zero, out CurrVol);
             ushort CalcVol = (ushort)(CurrVol & 0x0000FFFF);
             trackBar1.Value = CalcVol / (ushort.MaxValue / 10);
         }
-        
+
         void OnPanelDisposed(object sender, EventArgs e)
         {
             Disconnect();
@@ -60,7 +62,7 @@ namespace PAIN_chat
                 var text = $"{codec.Name} ({bitRate})";
                 comboBoxCodecs.Items.Add(new CodecComboItem { Text = text, Codec = codec });
             }
-            comboBoxCodecs.SelectedIndex = 1;
+            comboBoxCodecs.SelectedIndex = 3;
         }
 
         class CodecComboItem
@@ -149,9 +151,9 @@ namespace PAIN_chat
                 player.Dispose();
                 audioSender.Dispose();
                 selectedCodec.Dispose();
-                new NetworkChatPanel();
+                //new NetworkChatPanel();
                 saveIpPort();
-                System.Windows.Forms.Application.Restart();
+                //System.Windows.Forms.Application.Restart();
             }
         }
 
@@ -159,6 +161,7 @@ namespace PAIN_chat
         {
             Properties.Settings.Default.IP = textBoxIPAddress.Text;
             Properties.Settings.Default.Port = textBoxPort.Text;
+            Properties.Settings.Default.Tracklock = trackBar2.Value;
             Properties.Settings.Default.Save();
         }
 
@@ -167,7 +170,71 @@ namespace PAIN_chat
             int newVolume = ((ushort.MaxValue / 10) * trackBar1.Value);
             uint NewVolumeAllChannels = (((uint)newVolume & 0x0000ffff) | ((uint)newVolume << 16));
             waveOutSetVolume(IntPtr.Zero, NewVolumeAllChannels);
+        }
 
+        public void progressBar1_Click(object sender, EventArgs e)
+        {
+        }
+
+        private void checkBox1_CheckedChanged(object sender, EventArgs e)
+        {
+            if(checkBox1.Checked)
+            {
+                VolumeBar.Enabled = true;
+                VolumeBar.Tick += new EventHandler(VolumeBarRefresh);
+            }
+            else
+            {
+                VolumeBar.Enabled = false;
+            }
+        }
+        private void VolumeBarRefresh(object sender, EventArgs e)
+        {
+            try
+            {
+                progressBar1.Value = audioSender.inputVol;
+            }
+            catch { }
+        }
+
+        private void trackBar2_Scroll(object sender, EventArgs e)
+        {
+            if(checkBox1.Checked)
+            {
+                inputSens = trackBar2.Value;
+            }
+            else
+            {
+                trackBar2.Value = inputSens;
+            }
+        }
+
+        public void NetworkChatPanel_Load(object sender, EventArgs e)
+        {
+            inputSens = trackBar2.Value;
+        }
+
+        protected override void OnFormClosing(FormClosingEventArgs e)
+        {
+            base.OnFormClosing(e);
+
+            if (connected)
+            {
+                Disconnect();
+
+                if (e.CloseReason == CloseReason.WindowsShutDown) return;
+
+                switch (MessageBox.Show(this, "Are you sure you want to close?", "You are still connected!", MessageBoxButtons.YesNo))
+                {
+                    case DialogResult.No:
+                        e.Cancel = true;
+                        break;
+                    default:
+                        break;
+                }
+            }
         }
     }
+
+  
 }
