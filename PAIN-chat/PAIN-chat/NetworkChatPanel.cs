@@ -167,6 +167,7 @@ namespace PAIN_chat
 
         private void trackBar1_Scroll(object sender, EventArgs e)
         {
+            //Main audio output volume control
             int newVolume = ((ushort.MaxValue / 10) * trackBar1.Value);
             uint NewVolumeAllChannels = (((uint)newVolume & 0x0000ffff) | ((uint)newVolume << 16));
             waveOutSetVolume(IntPtr.Zero, NewVolumeAllChannels);
@@ -190,6 +191,7 @@ namespace PAIN_chat
         }
         private void VolumeBarRefresh(object sender, EventArgs e)
         {
+            //Provides a visual audio level cue for tuning microphone input sensitivity
             try
             {
                 progressBar1.Value = audioSender.inputVol;

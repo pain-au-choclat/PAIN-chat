@@ -37,10 +37,12 @@ namespace PAIN_chat
                                         e.Buffer[i + 0]);
                 float sample32 = sample / 32768f;
 
+                //Audio converted to db value.
                 double sampleD = (double)sample32;
                 sampleD = 20 * Math.Log10(Math.Abs(sampleD));
                 temp = (int)sampleD + 100;
 
+                //Filter to remove nonsensical db outputs
                 if (temp > 0 && temp < 100)
                 {
                     inputVol = temp;
@@ -51,6 +53,8 @@ namespace PAIN_chat
                 }
             }
 
+            //Microphone input sensitivty, controlled via scroll bar
+            //500ms buffer using timer to stop choppy audio output
             if (inputVol > NetworkChatPanel.inputSens)
             {
                 inputBuffer.Enabled = true;
